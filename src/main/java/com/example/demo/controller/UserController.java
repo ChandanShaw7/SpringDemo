@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import javax.validation.Valid;
 
+//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.model.User;
 import com.example.demo.services.UserServices;
 
+import java.util.HashMap;
+
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -25,6 +28,7 @@ public class UserController {
     public ResponseEntity<Iterable<User>> allUsers() {
         return new ResponseEntity<Iterable<User>>(userServices.getAllUser(), HttpStatus.OK);
     }
+
 	
 	@RequestMapping(value = "/{city}/{zip}",produces = "application/json")
 	public ResponseEntity<Iterable<User>> userDetails(@PathVariable String city,@PathVariable int zip){

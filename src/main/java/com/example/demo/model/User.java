@@ -7,6 +7,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**/
@@ -20,6 +21,8 @@ public class User {
 	@NotBlank
 	private String userName;
 	@NotBlank
+//	@JsonIgnore
+//	@RestResource(exported = false)
 	private String password;
 	private long contactNo;
 	private String city;

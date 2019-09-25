@@ -1,19 +1,35 @@
 package com.example.demo.services;
 
+
 import com.example.demo.exception.ResourceNotFoundException;
 import com.example.demo.model.Question;
 import com.example.demo.model.User;
 import com.example.demo.repository.QuestionRepository;
 import com.example.demo.repository.UserRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+//import org.json.simple.JSONArray;
+//import org.json.simple.JSONObject;
+//import org.json.simple.parser.JSONParser;
+//import org.json.simple.parser.ParseException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class QuestionsServices {
+
+    private static Logger log = LoggerFactory.getLogger(QuestionsServices.class);
 
     @Autowired
     private QuestionRepository questionsRepository;
@@ -21,34 +37,46 @@ public class QuestionsServices {
     private UserRepository userRepository;
 
 //
-    public Iterable<Question> getAllQuestion(int u_id){
+//    @Async("taskExecutor")
+//    public CompletableFuture<Iterable<Question>> getAllQuestion(int u_id) throws InterruptedException{
+//        log.info("questions by user id start");
+//        Iterable<Question> allQuestions = null;
+//        try{
+//            allQuestions = questionsRepository.findByUserId(u_id);
+//        }
+//        catch(Exception e) {
+//            e.printStackTrace();
+//        }
+//        Thread.sleep(1000L);
+//        return CompletableFuture.completedFuture(allQuestions);
+//    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<Iterable<Question>> getAllQuestionAsync(int u_id) throws InterruptedException {
+        return CompletableFuture.completedFuture(getQuestions(u_id));
+    }
+
+    public CompletableFuture<Iterable<Question>> getAllQuestion(int u_id){
+        log.info("questions by user id start in sync");
+        return CompletableFuture.completedFuture(getQuestions(u_id));
+    }
+
+    private Iterable<Question> getQuestions(int u_id){
         Iterable<Question> allQuestions = null;
-        try{
+        try {
             allQuestions = questionsRepository.findByUserId(u_id);
         }
-        catch(Exception e) {
+        catch(Exception e){
             e.printStackTrace();
         }
-        System.out.println(allQuestions);
         return allQuestions;
     }
 
+
     public Optional<Question> getQuestion(int q_id){
-//        System.out.println(q_id);
-//        Optional<Question> quest= questionsRepository.findById(q_id);
         return questionsRepository.findById(q_id);
     }
 
-//    public ResponseEntity<?> addQuestion(Question question){
-//        try {
-//            questionsRepository.save(question)
-//                return ResponseEntity.ok().build();
-//        }
-//        catch(Exception e){
-//            e.printStackTrace();
-//        }
-//        return ResponseEntity.badRequest().build();
-//    }
 
     public ResponseEntity<?> insertQuestion(int u_id, Question question){
 
@@ -57,13 +85,29 @@ public class QuestionsServices {
         Optional<User> userDetails = userRepository.findById(u_id);
             if (userDetails.isPresent()) {
                 User user = userDetails.get();
-                System.out.println(user.getId());
                 question.setUser(user);
                 questionsRepository.save(question);
                 return ResponseEntity.ok().build();
              }
         throw new ResourceNotFoundException("User not found with user id: ", String.valueOf(u_id));
 
+    }
+
+    @Async
+    public void saveAllData(MultipartFile file) throws Exception{
+        log.info("saving file data:"+ file);
+        List<Question> questions = null;
+        ObjectMapper mapper = new ObjectMapper();
+        TypeReference<List<Question>> typeReference = new TypeReference<List<Question>>(){};
+        InputStream inputStream = TypeReference.class.getResourceAsStream(file.getName());
+//        log.info(String.valueOf(inputStream));
+        try {
+            questions = mapper.readValue(inputStream,typeReference);
+            questionsRepository.saveAll(questions);
+            System.out.println("Questions Saved!");
+        } catch (IOException e){
+            System.out.println("Unable to save questions: " + e.getMessage());
+        }
     }
 
 
@@ -76,7 +120,6 @@ public class QuestionsServices {
             if (questionDetails.isPresent()){
                 questionDetails.get().setDescription(question.getDescription());
                 Question quest = questionsRepository.save(questionDetails.get());
-                System.out.println(quest.getTitle());
                 return ResponseEntity.ok().build();
             }
             throw new ResourceNotFoundException("Question not found with question",String.valueOf(q_id));
@@ -93,7 +136,4 @@ public class QuestionsServices {
         questionsRepository.deleteById(q_Id);
         return ResponseEntity.ok().build();
     }
-
-
-
 }
